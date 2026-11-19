@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lipka na Budowie: Odbiór Techniczny</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 100dvh;
+      overflow: hidden;
+      background: #141923;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #ffffff;
+      touch-action: none;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #20293a 0%, #111620 100%);
+    }
+
+    canvas#gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+
+    .hud {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .hud-pill {
+      background: rgba(15, 20, 30, 0.78);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: clamp(12px, 3.4vw, 15px);
+      font-weight: 700;
+      line-height: 1.2;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .hud-pill span.accent {
+      color: #fbbf24;
+    }
+
+    .hud-pill span.thermal {
+      color: #38bdf8;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 22, 0.84);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 10;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: #1b2332;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.16);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 5.5vw, 26px);
+      line-height: 1.2;
+    }
+
+    p.desc {
+      margin: 0 0 14px;
+      font-size: clamp(13px, 3.8vw, 15px);
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+
+    .legend {
+      text-align: left;
+      background: rgba(15, 20, 30, 0.65);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: clamp(12px, 3.5vw, 14px);
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+
+    .legend div {
+      margin-bottom: 4px;
+    }
+
+    .legend div:last-child {
+      margin-bottom: 0;
+    }
+
+    .btn-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    button.btn-primary {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #111827;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
+    }
+
+    button.btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-fb {
+      width: 100%;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      background: #1877f2;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(24, 119, 242, 0.35);
+      transition: background 0.15s ease;
+    }
+
+    button.btn-fb:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-fb.copied {
+      background: #16a34a;
+      border-color: rgba(74, 222, 128, 0.5);
+    }
+
+    .copy-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 2px;
+      min-height: 16px;
+    }
+
+    .final-score {
+      font-size: clamp(24px, 7vw, 32px);
+      font-weight: 900;
+      color: #fbbf24;
+      margin: 8px 0 4px;
+    }
+
+    .final-sub {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-wrapper">
+    <div class="hud">
+      <div class="hud-pill">Oszczędności: <span id="scoreVal" class="accent">0 zł</span></div>
+      <div class="hud-pill" id="thermalBadge" style="display:none;"><span class="thermal">TERMO x2!</span></div>
+      <div class="hud-pill">Czas: <span id="timeVal">30s</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="startScreen" class="overlay">
+      <div class="card">
+        <div class="badge">LIPKA NA BUDOWIE</div>
+        <h1>Odbiór Techniczny</h1>
+        <p class="desc">Przesuwaj palcem, myszą lub strzałkami łatę z libellą i wyłapuj usterki na odbiorze lokalu!</p>
+        <div class="legend">
+          <div>✅ <strong>Usterki</strong> (krzywy tynk, rysa na szybie, mostek, błąd w instalacji) = <strong>+punkty</strong></div>
+          <div>📷 <strong>Kamera termowizyjna</strong> = <strong>podwójne punkty (x2)</strong> przez 6 sek.</div>
+          <div>⚠️ <strong>Wymówki dewelopera</strong> („Taka norma Panie!”, „Ekipa wykończy!”) = <strong>strata punktów</strong></div>
+        </div>
+        <button id="startBtn" class="btn-primary">Rozpocznij odbiór</button>
+      </div>
+    </div>
+
+    <div id="endScreen" class="overlay hidden">
+      <div class="card">
+        <div class="badge">ODBIÓR ZAKOŃCZONY</div>
+        <h1>Wynik inspekcji</h1>
+        <div id="finalScore" class="final-score">0 zł</div>
+        <div id="finalRank" class="final-sub">Poziom inspektora</div>
+        <div class="btn-stack">
+          <button id="copyFbBtn" class="btn-fb">📋 Skopiuj wynik do komentarza na FB</button>
+          <div id="copyHint" class="copy-hint"></div>
+          <button id="restartBtn" class="btn-primary">Zagraj jeszcze raz</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("scoreVal");
+    const timeEl = document.getElementById("timeVal");
+    const thermalBadge = document.getElementById("thermalBadge");
+    const startScreen = document.getElementById("startScreen");
+    const endScreen = document.getElementById("endScreen");
+    const finalScoreEl = document.getElementById("finalScore");
+    const finalRankEl = document.getElementById("finalRank");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const copyFbBtn = document.getElementById("copyFbBtn");
+    const copyHint = document.getElementById("copyHint");
+
+    let viewW = window.innerWidth;
+    let viewH = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function resizeCanvas() {
+      viewW = window.innerWidth;
+      viewH = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.floor(viewW * dpr);
+      canvas.height = Math.floor(viewH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      if (player) {
+        player.y = viewH - Math.max(76, Math.min(110, viewH * 0.13));
+        player.x = Math.max(player.width / 2 + 10, Math.min(viewW - player.width / 2 - 10, player.x));
+      }
+    }
+
+    const DEFECTS = [
+      { label: "Krzywy tynk", pts: 1500, color: "#f59e0b" },
+      { label: "Rysa na szybie", pts: 2000, color: "#38bdf8" },
+      { label: "Mostek termiczny", pts: 2500, color: "#fb7185" },
+      { label: "Błąd w elektryce", pts: 2000, color: "#facc15" }
+    ];
+
+    const EXCUSES = [
+      "Taka norma Panie!",
+      "Ekipa wykończy!",
+      "W protokole nie wejdzie!",
+      "To pracuje i siada!"
+    ];
+
+    let state = "menu";
+    let score = 0;
+    let currentRankText = "";
+    let timeLeft = 30;
+    let thermalTimer = 0;
+    let spawnTimer = 0;
+    let lastTimestamp = 0;
+    let keys = { left: false, right: false };
+    let pointerActive = false;
+
+    const player = {
+      x: viewW / 2,
+      y: viewH - 90,
+      width: 120,
+      height: 22,
+      speed: 520
+    };
+
+    let items = [];
+    let popups = [];
+
+    function resetGame() {
+      score = 0;
+      timeLeft = 30;
+      thermalTimer = 0;
+      spawnTimer = 0.2;
+      items = [];
+      popups = [];
+      player.width = Math.max(96, Math.min(145, viewW * 0.26));
+      player.x = viewW / 2;
+      player.y = viewH - Math.max(76, Math.min(110, viewH * 0.13));
+      copyFbBtn.classList.remove("copied");
+      copyFbBtn.textContent = "📋 Skopiuj wynik do komentarza na FB";
+      copyHint.textContent = "";
+      updateHud();
+    }
+
+    function updateHud() {
+      scoreEl.textContent = `${score.toLocaleString("pl-PL")} zł`;
+      timeEl.textContent = `${Math.max(0, Math.ceil(timeLeft))}s`;
+      thermalBadge.style.display = thermalTimer > 0 ? "block" : "none";
+    }
+
+    function spawnItem() {
+      const margin = 56;
+      const x = margin + Math.random() * Math.max(40, viewW - margin * 2);
+      const baseSpeed = Math.max(170, viewH * 0.28) + Math.random() * (viewH * 0.16);
+      const roll = Math.random();
+
+      if (roll < 0.13) {
+        items.push({
+          type: "thermal",
+          x,
+          y: -30,
+          r: 22,
+          vy: baseSpeed * 1.05,
+          label: "TERMO x2"
+        });
+      } else if (roll < 0.42) {
+        const excuseText = EXCUSES[Math.floor(Math.random() * EXCUSES.length)];
+        items.push({
+          type: "excuse",
+          x,
+          y: -30,
+          r: 24,
+          vy: baseSpeed * 0.98,
+          label: excuseText
+        });
+      } else {
+        const def = DEFECTS[Math.floor(Math.random() * DEFECTS.length)];
+        items.push({
+          type: "defect",
+          x,
+          y: -30,
+          r: 22,
+          vy: baseSpeed,
+          pts: def.pts,
+          color: def.color,
+          label: def.label
+        });
+      }
+    }
+
+    function addPopup(x, y, text, color) {
+      popups.push({ x, y, text, color, alpha: 1, vy: -55 });
+    }
+
+    function checkHit(item) {
+      const halfW = player.width / 2 + item.r * 0.7;
+      const topY = player.y - player.height / 2 - item.r * 0.7;
+      const botY = player.y + player.height / 2 + item.r * 0.7;
+      return Math.abs(item.x - player.x) <= halfW && item.y >= topY && item.y <= botY;
+    }
+
+    function update(dt) {
+      if (state !== "playing") return;
+
+      timeLeft -= dt;
+      if (thermalTimer > 0) {
+        thermalTimer = Math.max(0, thermalTimer - dt);
+      }
+
+      if (keys.left) player.x -= player.speed * dt;
+      if (keys.right) player.x += player.speed * dt;
+
+      const minX = player.width / 2 + 10;
+      const maxX = viewW - player.width / 2 - 10;
+      player.x = Math.max(minX, Math.min(maxX, player.x));
+
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnItem();
+        spawnTimer = Math.max(0.36, 0.78 - (30 - timeLeft) * 0.012);
+      }
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.y += it.vy * dt;
+
+        if (checkHit(it)) {
+          if (it.type === "defect") {
+            const mult = thermalTimer > 0 ? 2 : 1;
+            const gained = it.pts * mult;
+            score += gained;
+            addPopup(it.x, it.y - 16, `+${gained.toLocaleString("pl-PL")} zł`, "#4ade80");
+          } else if (it.type === "thermal") {
+            thermalTimer = 6;
+            addPopup(it.x, it.y - 16, "KAMERA TERMO x2!", "#38bdf8");
+          } else if (it.type === "excuse") {
+            score = Math.max(0, score - 1500);
+            addPopup(it.x, it.y - 16, "-1 500 zł", "#f87171");
+          }
+          items.splice(i, 1);
+          continue;
+        }
+
+        if (it.y - it.r > viewH + 30) {
+          items.splice(i, 1);
+        }
+      }
+
+      for (let i = popups.length - 1; i >= 0; i--) {
+        const p = popups[i];
+        p.y += p.vy * dt;
+        p.alpha -= dt * 1.15;
+        if (p.alpha <= 0) popups.splice(i, 1);
+      }
+
+      updateHud();
+
+      if (timeLeft <= 0) {
+        finishGame();
+      }
+    }
+
+    function finishGame() {
+      state = "ended";
+      finalScoreEl.textContent = `${score.toLocaleString("pl-PL")} zł`;
+
+      let rank = "Początkujący na budowie — łap więcej usterek!";
+      if (score >= 35000) rank = "Mistrz Odbioru — deweloper nie ma szans!";
+      else if (score >= 18000) rank = "Pełen profesjonalizm — żadna krzywizna nie ucieknie!";
+      else if (score >= 8000) rank = "Solidny odbiór — dobra robota na budowie!";
+
+      currentRankText = rank;
+      finalRankEl.textContent = rank;
+      endScreen.classList.remove("hidden");
+    }
+
+    async function copyScoreForFacebook() {
+      const formattedScore = `${score.toLocaleString("pl-PL")} zł`;
+      const shareText = `🏗️ Mój wynik w grze Lipka na Budowie: Odbiór Techniczny to ${formattedScore} oszczędności na usterkach! (${currentRankText}) A ile Ty wyłapiesz?`;
+
+      let success = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareText);
+          success = true;
+        }
+      } catch (e) {
+        success = false;
+      }
+
+      if (!success) {
+        const tempArea = document.createElement("textarea");
+        tempArea.value = shareText;
+        tempArea.style.position = "fixed";
+        tempArea.style.opacity = "0";
+        document.body.appendChild(tempArea);
+        tempArea.focus();
+        tempArea.select();
+        try {
+          success = document.execCommand("copy");
+        } catch (err) {
+          success = false;
+        }
+        document.body.removeChild(tempArea);
+      }
+
+      if (success) {
+        copyFbBtn.classList.add("copied");
+        copyFbBtn.textContent = "✅ Skopiowano! Wklej w komentarzu na FB";
+        copyHint.textContent = "Tekst jest w schowku — wróć do posta i kliknij Wklej.";
+      } else {
+        copyHint.textContent = "Nie udało się skopiować automatycznie — zrób zrzut ekranu!";
+      }
+    }
+
+    function drawBackground() {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+      ctx.lineWidth = 1;
+      const step = 48;
+      for (let x = 0; x < viewW; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, viewH);
+        ctx.stroke();
+      }
+      for (let y = 0; y < viewH; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(viewW, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawPlayer() {
+      const { x, y, width, height } = player;
+
+      ctx.save();
+      ctx.fillStyle = thermalTimer > 0 ? "#38bdf8" : "#f59e0b";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x - width / 2, y - height / 2, width, height, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#111827";
+      ctx.fillRect(x - 14, y - 5, 28, 10);
+      ctx.fillStyle = "#4ade80";
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f8fafc";
+      ctx.beginPath();
+      ctx.arc(x, y - height / 2 - 14, 13, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(x - 16, y - height / 2 - 14, 32, 4);
+      ctx.restore();
+    }
+
+    function drawItems() {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (const it of items) {
+        if (it.type === "defect") {
+          ctx.fillStyle = it.color;
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "800 13px sans-serif";
+          ctx.fillText("!", it.x, it.y);
+
+          ctx.fillStyle = "#f8fafc";
+          ctx.font = "700 12px sans-serif";
+          ctx.fillText(it.label, it.x, it.y + it.r + 12);
+        } else if (it.type === "thermal") {
+          ctx.fillStyle = "#0284c7";
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "800 11px sans-serif";
+          ctx.fillText("TERMO", it.x, it.y);
+        } else if (it.type === "excuse") {
+          ctx.fillStyle = "#dc2626";
+          ctx.beginPath();
+          ctx.roundRect(it.x - 62, it.y - 16, 124, 32, 10);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "700 11px sans-serif";
+          ctx.fillText(it.label, it.x, it.y);
+        }
+      }
+
+      for (const p of popups) {
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.font = "900 15px sans-serif";
+        ctx.fillText(p.text, p.x, p.y);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, viewW, viewH);
+      drawBackground();
+      drawItems();
+      if (state === "playing") {
+        drawPlayer();
+      }
+    }
+
+    function loop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function moveToClientX(clientX) {
+      if (state !== "playing") return;
+      const rect = canvas.getBoundingClientRect();
+      const relX = clientX - rect.left;
+      const minX = player.width / 2 + 10;
+      const maxX = viewW - player.width / 2 - 10;
+      player.x = Math.max(minX, Math.min(maxX, relX));
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (state !== "playing") return;
+      pointerActive = true;
+      moveToClientX(e.clientX);
+    }, { passive: true });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!pointerActive || state !== "playing") return;
+      moveToClientX(e.clientX);
+    }, { passive: true });
+
+    window.addEventListener("pointerup", () => {
+      pointerActive = false;
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") keys.left = true;
+      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") keys.right = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") keys.left = false;
+      if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") keys.right = false;
+    });
+
+    startBtn.addEventListener("click", () => {
+      startScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      resetGame();
+      state = "playing";
+    });
+
+    restartBtn.addEventListener("click", () => {
+      endScreen.classList.add("hidden");
+      resetGame();
+      state = "playing";
+    });
+
+    copyFbBtn.addEventListener("click", copyScoreForFacebook);
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 120));
+
+    resizeCanvas();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
